@@ -1,30 +1,23 @@
-# redactscope
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sandeshbagmare/redactscope/main/assets/banner.svg" width="100%" alt="redactscope: stop secrets in tool results before they reach the model">
+</p>
 
-Remove the secrets that a tool result carries into the model's context, and report what
-was there.
+<p align="center">
+  <a href="https://pypi.org/project/redactscope/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/redactscope.svg"></a>
+  <a href="https://pypi.org/project/redactscope/"><img alt="Python versions" src="https://img.shields.io/pypi/pyversions/redactscope.svg"></a>
+  <a href="https://pypi.org/project/redactscope/"><img alt="Downloads" src="https://img.shields.io/pypi/dm/redactscope.svg"></a>
+  <a href="https://github.com/sandeshbagmare/redactscope/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/sandeshbagmare/redactscope/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/sandeshbagmare/redactscope/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/redactscope.svg"></a>
+  <a href="https://sandeshbagmare.github.io/redactscope/"><img alt="docs" src="https://img.shields.io/badge/docs-online-2ea44f.svg"></a>
+  <a href="https://pypi.org/project/redactscope/"><img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-2ea44f.svg"></a>
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/redactscope.svg)](https://pypi.org/project/redactscope/)
-[![Python](https://img.shields.io/pypi/pyversions/redactscope.svg)](https://pypi.org/project/redactscope/)
-[![tests](https://github.com/sandeshbagmare/redactscope/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeshbagmare/redactscope/actions/workflows/ci.yml)
-[![license](https://img.shields.io/pypi/l/redactscope.svg)](https://github.com/sandeshbagmare/redactscope/blob/main/LICENSE)
+<h3 align="center">stop secrets in tool results before they reach the model</h3>
+<p align="center"><em>Standard library only. No runtime dependencies. Python 3.9+.</em></p>
 
-```python
->>> from redactscope import audit, redact
->>> message = {"role": "tool", "content": "token=sk-proj-8fJ2kLm4Qz7Vn1Xy3Wb6"}
->>> redact(message)["content"]
-'token=***'
->>> [finding.kind for finding in audit(message)]
-['openai-key']
-```
-
-Log redaction tools know about dict keys. Agent messages are worse than that: an env file
-pasted into a tool result, a `curl` line with a bearer token, a stack trace with a
-connection URL that has a password in it, a private key in a PEM block, a JWT in a cookie
-header. None of those are under a key called `password`.
-
-`redactscope` walks whatever the tool returned — dicts, lists, strings, JSON text — masks
-secret-looking keys *and* secret-looking strings, and can tell you exactly what it found
-without changing anything.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sandeshbagmare/redactscope/main/assets/how.svg" width="720" alt="how redactscope fits in">
+</p>
 
 ## Install
 

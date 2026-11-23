@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>redactscope — stop secrets in tool results before they reach the model</title>
+<meta name="description" content="Stop secrets in tool results before they reach the model. Standard library only, Python 3.9+.">
+<meta property="og:title" content="redactscope — stop secrets in tool results before they reach the model">
+<meta property="og:description" content="Stop secrets in tool results before they reach the model. Standard library only, Python 3.9+.">
+<meta property="og:image" content="https://raw.githubusercontent.com/sandeshbagmare/redactscope/main/assets/banner.svg">
+<meta property="og:type" content="website">
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: hsl(350 45% 8%);
+    --ink: #e6edf6;
+    --muted: #9fb0c6;
+    --line: hsl(350 35% 26%);
+    --accent: hsl(288 88% 66%);
+    --soft: hsl(288 92% 80%);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--soft); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header {
+    position: sticky; top: 0; z-index: 9; display: flex; gap: 18px; align-items: center;
+    padding: 14px 24px; background: rgba(8, 12, 20, 0.86); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  header .mark { width: 26px; height: 26px; }
+  header strong { font-family: ui-monospace, monospace; letter-spacing: 0.02em; }
+  header nav { margin-left: auto; display: flex; gap: 16px; font-size: 14px; }
+  .hero { max-width: 1180px; margin: 0 auto; padding: 18px 20px 0; }
+  .hero img { width: 100%; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.45); }
+  main { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1, h2, h3, h4 { line-height: 1.25; }
+  h2 { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em;
+    background: rgba(148, 163, 184, 0.15); padding: 1px 5px; border-radius: 5px;
+  }
+  pre.code {
+    position: relative; background: #070b12; border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px; overflow-x: auto;
+  }
+  pre.code code { background: none; padding: 0; font-size: 14px; }
+  pre .lang {
+    position: absolute; top: 8px; right: 12px; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  img { max-width: 100%; }
+  blockquote {
+    margin: 18px 0; padding: 4px 16px; border-left: 3px solid var(--accent);
+    color: var(--muted);
+  }
+  footer {
+    border-top: 1px solid var(--line); padding: 26px 20px; color: var(--muted);
+    font-size: 14px; text-align: center;
+  }
+</style>
+</head>
+<body>
+<header>
+  <img class="mark" src="../assets/logo.svg" alt="">
+  <strong>redactscope</strong>
+  <nav>
+    <a href="https://pypi.org/project/redactscope/">PyPI</a>
+    <a href="https://github.com/sandeshbagmare/redactscope">GitHub</a>
+    <a href="https://github.com/sandeshbagmare/redactscope/issues">Issues</a>
+    <a href="https://github.com/sandeshbagmare/redactscope/blob/main/CHANGELOG.md">Changelog</a>
+  </nav>
+</header>
+<div class="hero"><img src="../assets/banner.svg" alt="redactscope"></div>
+<main>
+<p align="center">
+  <img src="../assets/how.svg" width="720" alt="how redactscope fits in">
+</p>
+<h2>Install</h2>
+<pre class="code"><span class="lang">console</span><code>pip install redactscope</code></pre>
+<h2>Use</h2>
+<pre class="code"><span class="lang">python</span><code>from redactscope import SecretLeak, assert_clean, audit, redact
+
+clean = redact(tool_result)                 # a copy, never the original
+findings = audit(tool_result)               # [Finding(path=&quot;metadata.api_key&quot;, kind=&quot;secret-key&quot;, …)]
+assert_clean(tool_result)                   # raises SecretLeak, for a test or a gate</code></pre>
+<p>Wrapping a tool so nothing raw ever reaches the context:</p>
+<pre class="code"><span class="lang">python</span><code>def safe_tool(function):
+    def wrapper(*args, **kwargs):
+        result = function(*args, **kwargs)
+        findings = audit(result)
+        if findings:
+            log.warning(&quot;redacted %s&quot;, [str(finding) for finding in findings])
+        return redact(result)
+    return wrapper</code></pre>
+<pre class="code"><span class="lang">console</span><code>$ redactscope message.json &gt; clean.json      # redacted JSON on stdout
+$ redactscope trace.log                      # plain text works too
+$ redactscope message.json --check           # exit 1 if anything was found
+$ redactscope message.json --keys-only       # mask keys, leave other strings alone</code></pre>
+<h2>What is caught</h2>
+<table><thead><tr>
+<th>kind</th>
+<th>example</th>
+</tr></thead><tbody>
+<tr><td><code>secret-key</code></td><td>any key whose name contains <code>password</code>, <code>token</code>, <code>secret</code>, <code>api_key</code>, <code>authorization</code>, <code>credential</code>, <code>session</code>, <code>cookie</code>, <code>signature</code>, …</td></tr>
+<tr><td><code>openai-key</code></td><td><code>sk-…</code> (8+ characters after the prefix)</td></tr>
+<tr><td><code>anthropic-key</code></td><td><code>sk-ant-…</code></td></tr>
+<tr><td><code>github-token</code></td><td><code>ghp_</code>, <code>gho_</code>, <code>ghu_</code>, <code>ghs_</code>, <code>ghr_</code>, <code>github_pat_</code></td></tr>
+<tr><td><code>slack-token</code></td><td><code>xoxb-</code>, <code>xoxp-</code>, <code>xoxa-</code>, …</td></tr>
+<tr><td><code>aws-access-key</code></td><td><code>AKIA…</code> / <code>ASIA…</code> + 16 characters</td></tr>
+<tr><td><code>google-api-key</code></td><td><code>AIza…</code> + 35 characters</td></tr>
+<tr><td><code>jwt</code></td><td>three dot-separated base64url segments starting <code>eyJ</code></td></tr>
+<tr><td><code>bearer</code> / <code>basic-auth</code></td><td><code>Bearer …</code>, <code>Basic …</code></td></tr>
+<tr><td><code>url-credentials</code></td><td><code>postgres://user:password@host</code></td></tr>
+<tr><td><code>private-key-block</code></td><td><code>-----BEGIN … PRIVATE KEY-----</code> … <code>-----END …</code></td></tr>
+</tbody></table>
+<p><code>audit</code> reports a path for each finding — <code>messages[0].content</code>, <code>metadata.api_key</code> — and a preview that never contains the value itself.</p>
+<h2>Rules</h2>
+<ul>
+<li><code>redact</code> returns a copy. Dict keys are kept, values are replaced with <code>***</code>.</li>
+<li>A string that is not a secret is returned unchanged; matching is on shapes that are</li>
+</ul>
+<p>  unlikely in prose (<code>sk-</code> needs 8 more characters, <code>AKIA</code> needs 16).</p>
+<ul>
+<li>Pass <code>markers=(...)</code> to mask your own key names, <code>patterns=(...)</code> to narrow or extend</li>
+</ul>
+<p>  the value patterns, <code>mask="[redacted]"</code> to change the replacement.</p>
+<ul>
+<li>Tuples become lists, because JSON has no tuples and a message usually ends up as JSON.</li>
+<li><code>--keys-only</code> and <code>patterns=()</code> are the same decision: trust the key names and leave</li>
+</ul>
+<p>  the strings alone.</p>
+<h2>Limits</h2>
+<ul>
+<li>This is a safety net, not a guarantee. A secret with no recognisable shape, in prose,</li>
+</ul>
+<p>  under an innocent key will pass — nothing pattern-based can fix that.</p>
+<ul>
+<li>Patterns are chosen to avoid false positives, so a short custom token</li>
+</ul>
+<p>  (<code>token=abc123</code>) is caught by its <em>key</em>, not by its value.</p>
+<ul>
+<li>No entropy analysis and no semantic detection: that is a different product with a</li>
+</ul>
+<p>  different false-positive budget.</p>
+<ul>
+<li>Redaction is not a substitute for not collecting the secret in the first place.</li>
+</ul>
+<h2>Development</h2>
+<pre class="code"><span class="lang">console</span><code>python -m venv .venv
+.venv/bin/pip install -e &quot;.[test]&quot;
+.venv/bin/pytest</code></pre>
+<h2>License</h2>
+<p>MIT.</p>
+</main>
+<footer>
+  redactscope · MIT · standard library only ·
+  <a href="https://github.com/sandeshbagmare/redactscope">source</a> ·
+  <a href="https://pypi.org/project/redactscope/">pip install redactscope</a>
+</footer>
+</body>
+</html>
